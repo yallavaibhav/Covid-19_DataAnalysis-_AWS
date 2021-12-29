@@ -58,3 +58,91 @@ Before using crawlers, we need to create a database in the Data Catalog. This wi
 After creating the database, we have created a crawler with Run on-demand specifications. The source was from the S3 input bucket, and the output will be stored in a table in the database.
 Once we run the crawler, the crawler will create a table that will be stored in the Database. We can run it hourly or daily if our data is streaming. The crawler will help recognize your data store, which in turn is used to create a schema for the table.
 
+![image](https://user-images.githubusercontent.com/39133612/147706486-cc6dd9e9-0ca8-4525-a520-bc1c8563750c.png)
+
+The table with the metadata is provided by the crawler as shown below:
+![image](https://user-images.githubusercontent.com/39133612/147706536-27f1be87-5549-4728-b917-eb9935c6af8c.png)
+
+5.4	AWS Glue Job 1:
+The data we have contains 67 columns and more than a hundred thousand rows, where most of the parts are empty.
+For instance, from 24th February 2020 to 23rd March 2020 no one dies due to covid in Afghanistan, so the values are empty.
+Without filling in these Null values, there would be a problem while querying or visualization. So, one of the best approaches is to clean the data by filling the null values with 0. By using PYSPARK we had written a custom code that will help fill the zeros in the empty places.
+
+![image](https://user-images.githubusercontent.com/39133612/147706583-12d9caa3-f374-48f0-91ae-a716413f7208.png)
+
+Once filling in the null values code is written in the custom transform, we need to export the output in S3 or even in the database. We have stored the output in the S3 output bucket and the database. 
+After the output is generated, we have checked the data using SQL queries in ATHENA. Once the output shown in Athena is as we expected, we have created another job. 
+
+5.5	AWS Glue Job 2:
+As we have designed a data model, we have divided the dimensions in Glue Job. The first job output is sent to the second job. This second job will help to divide the mail table into different dimensions, that is 11 tables with unique attributes and having surrogate keys.
+
+![image](https://user-images.githubusercontent.com/39133612/147706607-b26a9c89-c33b-4250-9b88-9a30d01f9d9b.png)
+
+For this, we have written a custom code where we used the data frames concept in PySpark. We have divided the main table into 11 different tables, each having its attributes. For instance, the vaccination table has attributes like total vaccination till that day, Number of people vaccinated, and many more. We have separated it into tables for better analytical queries.
+The output is sent to the S3 bucket and the database. There will be many files created as there are many tables present. 
+
+
+6	Analytical queries:
+6.1	Redshift:
+Redshift is a data warehousing tool used for analytics. For this, we need to integrate with the glue. This will help send the data from Glue to redshift. We need to have an IAM role which is having both Glue and Redshift policies. The other way we can do this is by sending the files present in the S3 output bucket to Redshift.
+We had created tables in Redshift and inserted the data which came from Job 2. Now after inserting the data into their respective tables, we have started writing analytical queries.
+
+6.2	Redshift queries:
+This figure shows the output of the query which we executed to find out the top countries with the greatest number of Covid-19 infections. 
+![image](https://user-images.githubusercontent.com/39133612/147706661-3a9f82d8-b394-4ef0-84ba-916164c92cbd.png)
+
+This figure shows the status of vaccination in different countries. Here we have displayed the top 10 countries by the number of people who are not yet fully vaccinated. India has the maximum number of people who are yet not fully vaccinated. India has a long way in front to complete their vaccination.
+
+![image](https://user-images.githubusercontent.com/39133612/147706692-209734ef-864b-4e87-ab32-8abe4e682c12.png)
+
+This figure shows the output of the query to find the top 10 countries with the greatest number of deaths in the Asian continent. Here it can be inferred that India is the worst affected by Covid-19 in the Asian region.
+
+![image](https://user-images.githubusercontent.com/39133612/147706727-a12b70f6-300d-4314-aabd-f877f9ae625b.png)
+
+This tabular data shows the relation between handwashing facilities in a country and the number of confirmed cases. It was observed that countries having a high number of handwashing facilities has a small number of Covid infections compared to countries where handwashing facilities are not adequate.
+
+![image](https://user-images.githubusercontent.com/39133612/147706761-f5990ad8-2ae9-4964-8ca8-7ab856813e09.png)
+
+
+This query result shows the relation between the stringency index and the number of cases in the United States. It is observed that as the value of the stringency index increases the number of new confirmed cases decreases. Thus, a country having a high stringency index can help them in reducing the number of new infections.
+
+![image](https://user-images.githubusercontent.com/39133612/147706785-434ef85b-dc0f-4362-abdb-3ee29a8e8044.png)
+
+7	Visualization:
+Visualization is an effective way to represent information. An image can represent a piece of information way better than text. So, we created some visualizations to represent some of the trends that we discovered through our analysis. 
+![image](https://user-images.githubusercontent.com/39133612/147706812-d66a55ca-1066-48d9-8ca3-3004b623424a.png)
+
+![image](https://user-images.githubusercontent.com/39133612/147706831-8a4ee80c-13d5-43a5-aa99-8c91297b11ec.png)
+
+
+The above visualization shows us the number of Covid-19 infections throughout the world. We created a world map and indicated all the confirmed cases for all the countries. For the same, we created a bar chart and from the bar chart, we can see that the United States has the greatest number of confirmed cases with 48 million infections and is followed by India with 34 million cases.
+
+![image](https://user-images.githubusercontent.com/39133612/147706887-40f11ead-1be2-4016-9496-c52650569b09.png)
+
+This world map depicts the number of deaths throughout the world. The larger the circle is, the greater the number of deaths is there. We can see that countries like the United States, Brazil, and India are the worst affected countries.
+![image](https://user-images.githubusercontent.com/39133612/147706911-02f40c26-5c7e-44fa-96d0-4955e3fa2a26.png)
+
+This bar graph indicates the top 10 countries with the highest number of deaths per million. Here we can see that smaller countries like Peru and Bulgaria have a high number of deaths per million because while they have a low population, the number of deaths resulting from Covid-19 for them is extremely high. For Peru, they faced 6000 deaths for every 1 million population.
+
+![image](https://user-images.githubusercontent.com/39133612/147706931-e9584a08-3ca5-42a2-9472-5a689176629e.png)
+
+This dual-axis graph represents the data of stringency index versus new daily infections in the United States. Stringency index represents the measure of response to government policies like lockdown, social distancing, school closures from the public. We can say that overall, the response from the public is good in the United States. As the value of the stringency index increases, the number of new infections is decreasing. So, from this government can decide to strengthen the measures and imply strict rules so that the public follows them and as a result, it will help in limiting the spread of Covid-19.
+
+![image](https://user-images.githubusercontent.com/39133612/147706950-cfa12fc6-8952-4f46-9e6f-5e414a000d30.png)
+
+This bar graph indicates the top 10 countries which have administered the maximum number of boosters to the public. Booster shots are given to individuals which are already fully vaccinated. These shots are given to maintain the efficacy of the vaccines in the individuals. It can be observed that China as a country has administered the maximum number of boosters with 65 million shots followed by the United States with 42 million shots followed by the United Kingdom with 19 million shots.
+
+8	Github:
+https://github.com/yallavaibhav/Covid-19_DataAnalysis-_AWS
+
+9	Conclusion:
+The analysis of this dataset helped us to understand the basics of COVID-19. It gave us information about the factors that affect the number of cases. This analysis will be useful to make strategies to prevent the worst situations. With the help of this exploratory analysis, people can unders7tand the data about Covid-19 and can make better decisions. From our analysis, we can conclude that by implementing measures like lockdown, social distancing, and proper sanitization we can limit the spread of the COVID-19 virus. It will also help the government to make better policies which could help them tackle such problems in the future.
+
+10	References:
+1.	Alsunaidi SJ, Almuhaideb AM, Ibrahim NM, et al. Applications of Big Data Analytics to Control COVID-19 Pandemic. Sensors (Basel). 2021;21(7):2282. Published 2021 Mar 24. doi:10.3390/s21072282
+2.	Farhadi N, Lahooti H. Are COVID-19 Data Reliable? A Quantitative Analysis of Pandemic Data from 182 Countries. COVID. 2021; 1(1):137-152. https://doi.org/10.3390/covid1010013
+3.	https://ourworldindata.org/coronavirus
+4.	Tosi D, Campi A. How Data Analytics and Big Data Can Help Scientists in Managing COVID-19 Diffusion: Modeling Study to Predict the COVID-19 Diffusion in Italy and the Lombardy Region. J Med Internet Res 2020;22(10): e21081. URL: https://www.jmir.org/2020/10/e21081. DOI: 10.2196/21081
+
+
+
